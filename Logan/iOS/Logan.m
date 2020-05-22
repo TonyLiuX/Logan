@@ -58,6 +58,7 @@ uint32_t __max_reversed_date;
 - (void)flush;
 - (void)filePathForDate:(NSString *)date block:(LoganFilePathBlock)filePathBlock;
 + (void)uploadFileToServer:(NSString *)urlStr date:(NSString *)date appId:(NSString *)appId unionId:(NSString *)unionId deviceId:(NSString *)deviceId resultBlock:(LoganUploadResultBlock)resultBlock;
++ (void)uploadFileToServer:(NSString *)urlStr date:(NSString *)date params:(NSDictionary *) params resultBlock:(LoganUploadResultBlock)resultBlock;
 @end
 
 void loganInit(NSData *_Nonnull aes_key16, NSData *_Nonnull aes_iv16, uint64_t max_file) {
@@ -67,14 +68,14 @@ void loganInit(NSData *_Nonnull aes_key16, NSData *_Nonnull aes_iv16, uint64_t m
     if (__max_reversed_date == 0) {
         __max_reversed_date = 7;
     }
-    
+
 }
 
 void loganSetMaxReversedDate(int max_reversed_date) {
     if (max_reversed_date > 0) {
         __max_reversed_date = max_reversed_date;
     }
-    
+
 }
 void logan(NSUInteger type, NSString *_Nonnull log) {
     [[Logan logan] writeLog:log logType:type];
@@ -102,6 +103,10 @@ void loganUploadFilePath(NSString *_Nonnull date, LoganFilePathBlock _Nonnull fi
 
 void loganUpload(NSString * _Nonnull url, NSString * _Nonnull date,NSString * _Nullable appId, NSString *_Nullable unionId,NSString *_Nullable deviceId, LoganUploadResultBlock _Nullable resultBlock){
 	[Logan uploadFileToServer:url date:date appId:appId unionId:unionId deviceId:deviceId resultBlock:resultBlock];
+}
+
+void loganUploadParams(NSString * _Nonnull url, NSString * _Nonnull date, NSDictionary * _Nonnull params, LoganUploadResultBlock _Nullable resultBlock){
+    [Logan uploadFileToServer:url date:date params:params resultBlock:resultBlock];
 }
 
 void loganFlush(void) {
@@ -140,7 +145,7 @@ NSString *_Nonnull loganTodaysDate(void) {
     NSAssert(__AES_KEY, @"aes_key is nil!!!,Please use llogInit() to set the key.");
     NSAssert(__AES_IV, @"aes_iv is nil!!!,Please use llogInit() to set the iv.");
     const char *path = [Logan loganLogDirectory].UTF8String;
-    
+
     const char *aeskey = (const char *)[__AES_KEY bytes];
     const char *aesiv = (const char *)[__AES_IV bytes];
     clogan_init(path, path, (int)__max_file, aeskey, aesiv);
@@ -154,7 +159,7 @@ NSString *_Nonnull loganTodaysDate(void) {
     if (log.length == 0) {
         return;
     }
-    
+
     NSTimeInterval localTime = [[NSDate date] timeIntervalSince1970] * 1000;
     NSString *threadName = [[NSThread currentThread] name];
     NSInteger threadNum = 1;
@@ -166,11 +171,11 @@ NSString *_Nonnull loganTodaysDate(void) {
     if (LOGANUSEASL) {
         [self printfLog:log type:type];
     }
-    
+
     if (![self hasFreeSpece]) {
         return;
     }
-    
+
     dispatch_async(self.loganQueue, ^{
         NSString *today = [Logan currentDate];
         if (self.lastLogDate && ![self.lastLogDate isEqualToString:today]) {
@@ -232,20 +237,20 @@ NSString *_Nonnull loganTodaysDate(void) {
     NSString *description = [[NSThread currentThread] description];
     NSRange beginRange = [description rangeOfString:@"{"];
     NSRange endRange = [description rangeOfString:@"}"];
-    
+
     if (beginRange.location == NSNotFound || endRange.location == NSNotFound) return -1;
-    
+
     NSInteger length = endRange.location - beginRange.location - 1;
     if (length < 1) {
         return -1;
     }
-    
+
     NSRange keyRange = NSMakeRange(beginRange.location + 1, length);
-    
+
     if (keyRange.location == NSNotFound) {
         return -1;
     }
-    
+
     if (description.length > (keyRange.location + keyRange.length)) {
         NSString *keyPairs = [description substringWithRange:keyRange];
         NSArray *keyValuePairs = [keyPairs componentsSeparatedByString:@","];
@@ -329,7 +334,7 @@ NSString *_Nonnull loganTodaysDate(void) {
             }
         }
     }
-    
+
     if (uploadFilePath.length) {
         if ([date isEqualToString:[Logan currentDate]]) {
             dispatch_async(self.loganQueue, ^{
@@ -352,7 +357,7 @@ NSString *_Nonnull loganTodaysDate(void) {
     if (![[NSFileManager defaultManager] copyItemAtPath:filePath toPath:uploadFilePath error:&error]) {
         uploadFilePath = nil;
     }
-    
+
     dispatch_async(dispatch_get_main_queue(), ^{
         filePathBlock(uploadFilePath);
     });
@@ -416,14 +421,14 @@ NSString *_Nonnull loganTodaysDate(void) {
 		if (bundleVersion.length > 0) {
 			[req addValue:bundleVersion forHTTPHeaderField:@"bundleVersion"];
 		}
-		
+
 		if(deviceId.length >0){
 			[req addValue:deviceId forHTTPHeaderField:@"deviceId"];
 		}
 		[req addValue:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] forHTTPHeaderField:@"appVersion"];
-		[req addValue:@"2" forHTTPHeaderField:@"platform"];
+		[req addValue:@"2" forHTTPHeaderField:@"deviceType"];
 		[req addValue:date forHTTPHeaderField:@"fileDate"];
-		
+
 		NSURL *fileUrl = [NSURL fileURLWithPath:filePatch];
 		NSURLSessionUploadTask *task = [[NSURLSession sharedSession] uploadTaskWithRequest:req fromFile:fileUrl completionHandler:^(NSData *_Nullable data, NSURLResponse *_Nullable response, NSError *_Nullable error) {
 			if(resultBlock){
@@ -434,6 +439,42 @@ NSString *_Nonnull loganTodaysDate(void) {
 		}];
 		[task resume];
 	});
+}
+
++ (void)uploadFileToServer:(NSString *)urlStr date:(NSString *)date params:(NSDictionary *)params resultBlock:(LoganUploadResultBlock)resultBlock{
+    loganUploadFilePath(date, ^(NSString * _Nullable filePath) {
+        if (filePath == nil) {
+            if(resultBlock){
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSError * error = [NSError errorWithDomain:@"come.meituan.logan.error" code:-100 userInfo:@{@"info" : [NSString stringWithFormat:@"can't find file of %@",date]}];
+                    resultBlock(nil,nil,error);
+                });
+            }
+            return;
+        }
+        NSURL *url = [NSURL URLWithString:urlStr];
+        NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:url cachePolicy:NSURLRequestReloadIgnoringCacheData timeoutInterval:60];
+        [req setHTTPMethod:@"POST"];
+        [req addValue:@"binary/octet-stream" forHTTPHeaderField:@"Content-Type"];
+        if (params) {
+            for (NSString * key in params) {
+                NSString *value = [params objectForKey:key];
+                if (value) {
+                    [req addValue:value forHTTPHeaderField:key];
+                }
+            }
+        }
+
+        NSURL *fileUrl = [NSURL fileURLWithPath:filePath];
+        NSURLSessionUploadTask *task = [[NSURLSession sharedSession] uploadTaskWithRequest:req fromFile:fileUrl completionHandler:^(NSData *_Nullable data, NSURLResponse *_Nullable response, NSError *_Nullable error) {
+            if(resultBlock){
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    resultBlock(data,response,error);
+                });
+            }
+        }];
+        [task resume];
+    });
 }
 
 + (void)deleteOutdatedFiles {
@@ -447,7 +488,7 @@ NSString *_Nonnull loganTodaysDate(void) {
             [self deleteLoganFile:dateStr];
             return;
         }
-        
+
             // 检查文件名长度
         if (dateStr.length != (dateFormatString.length)) {
             [self deleteLoganFile:dateStr];
@@ -473,7 +514,7 @@ NSString *_Nonnull loganTodaysDate(void) {
 + (NSInteger)getDaysFrom:(NSDate *)serverDate To:(NSDate *)endDate {
     NSCalendar *gregorian = [[NSCalendar alloc]
                              initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-    
+
     NSDate *fromDate;
     NSDate *toDate;
     [gregorian rangeOfUnit:NSCalendarUnitDay startDate:&fromDate interval:NULL forDate:serverDate];

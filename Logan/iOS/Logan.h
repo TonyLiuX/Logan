@@ -28,14 +28,14 @@ typedef void (^LoganUploadResultBlock)(NSData *_Nullable data, NSURLResponse *_N
 
 /**
  返回文件路径
- 
+
  @param filePatch filePath nil时表示文件不存在
  */
 typedef void (^LoganFilePathBlock)(NSString *_Nullable filePath);
 
 /**
  logan初始化
- 
+
  @param aes_key16 16位aes加密key
  @param aes_iv16  16位aes加密iv
  @param max_file  日志文件最大大小，超过该大小后日志将不再被写入，单位：byte。
@@ -50,10 +50,10 @@ extern void loganInit(NSData *_Nonnull aes_key16, NSData *_Nonnull aes_iv16, uin
 extern void loganSetMaxReversedDate(int max_reversed_date);
 /**
  记录Logan日志
- 
+
  @param type 日志类型
  @param log  日志字符串
- 
+
  @brief
  用例：
  logan(1, @"this is a test");
@@ -62,7 +62,7 @@ extern void logan(NSUInteger type, NSString *_Nonnull log);
 
 /**
  将日志全部输出到控制台的开关，默认NO
- 
+
  @param b 开关
  */
 extern void loganUseASL(BOOL b);
@@ -74,7 +74,7 @@ extern void loganFlush(void);
 
 /**
  日志信息输出开关，默认NO
- 
+
  @param b 开关
  */
 extern void loganPrintClibLog(BOOL b);
@@ -86,14 +86,14 @@ extern void loganClearAllLogs(void);
 
 /**
  返回本地所有文件名及大小(单位byte)
- 
+
  @return @{@"2018-11-21":@"110"}
  */
 extern NSDictionary *_Nullable loganAllFilesInfo(void);
 
 /**
  根据日期获取上传日志的文件路径，异步方式！
- 
+
  @param date 日志日期 格式："2018-11-21"
  @param filePathBlock 回调返回文件路径，在主线程中回调
  */
@@ -101,7 +101,7 @@ extern void loganUploadFilePath(NSString *_Nonnull date, LoganFilePathBlock _Non
 
 /**
  上传指定日期的日志
- 
+
  @param url 接受日志的服务器完整url
  @param date 日志日期 格式："2018-11-21"
  @param appId 当前应用的唯一标识,在多App时区分日志来源App
@@ -110,9 +110,17 @@ extern void loganUploadFilePath(NSString *_Nonnull date, LoganFilePathBlock _Non
  */
 extern void loganUpload(NSString * _Nonnull url, NSString * _Nonnull date,NSString * _Nullable appId, NSString *_Nullable unionId,NSString *_Nullable deviceId, LoganUploadResultBlock _Nullable resultBlock);
 
+
+/// 上传指定日期的日志
+/// @param url 接受日志的服务器完整url
+/// @param date 日志日期 格式："2018-11-21"
+/// @param params 其他上传数据
+/// @param resultBlock 服务器返回结果
+extern void loganUploadParams(NSString * _Nonnull url, NSString * _Nonnull date, NSDictionary * _Nonnull params, LoganUploadResultBlock _Nullable resultBlock);
+
 /**
  返回今天日期
- 
+
  @return @"2018-11-21"
  */
 extern NSString *_Nonnull loganTodaysDate(void);
