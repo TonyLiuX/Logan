@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
     s.homepage         = 'https://github.com/Meituan-Dianping/Logan'
     s.license          = { :type => 'MIT', :file => 'LICENSE' }
     s.author           = { 'jiangteng' => 'jiangteng.cn@gmail.com', 'yxiangnan' => 'yxiangnan@gmail.com', 'maxiaojun' => 'xiaojun_ma@qq.com'}
-    s.source           = { :git => 'https://github.com/Meituan-Dianping/Logan.git', :tag => s.version.to_s }
+    s.source           = { :git => 'https://github.com/TonyLiuX/Logan.git', :tag => s.version.to_s }
 
     s.ios.deployment_target = '8.0'
     s.osx.deployment_target = '10.9'
